@@ -1,0 +1,47 @@
+# Multiling O Keyboard - Physical Keyboard Custom Layout
+# Arabic Academic Transliteration (DIN 31635 / EI2)
+#
+# INSTALLATION:
+# 1. Open Multiling O Keyboard > Settings > Physical keyboard > Custom layout
+# 2. Paste this content or import this file
+#
+# FORMAT: MODIFIER KEY = OUTPUT_CHARACTER
+# All mappings use Right Alt (AltGr) as the modifier key.
+
+# === Long Vowels (Macrons) ===
+RALT a = ā
+RALT SHIFT a = Ā
+RALT i = ī
+RALT SHIFT i = Ī
+RALT u = ū
+RALT SHIFT u = Ū
+
+# === Dot Below Consonants ===
+RALT h = ḥ
+RALT SHIFT h = Ḥ
+RALT s = ṣ
+RALT SHIFT s = Ṣ
+RALT t = ṭ
+RALT SHIFT t = Ṭ
+RALT d = ḍ
+RALT SHIFT d = Ḍ
+RALT z = ẓ
+RALT SHIFT z = Ẓ
+
+# === Special Consonants ===
+RALT x = ḫ
+RALT SHIFT x = Ḫ
+RALT g = ġ
+RALT SHIFT g = Ġ
+RALT c = š
+RALT SHIFT c = Š
+
+# === Line Below ===
+RALT v = ṯ
+RALT SHIFT v = Ṯ
+RALT e = ḏ
+RALT SHIFT e = Ḏ
+
+# === Ayn and Hamza ===
+RALT [ = ʿ
+RALT ] = ʾ

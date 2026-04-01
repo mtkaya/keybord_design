@@ -1,0 +1,36 @@
+# Gboard Personal Dictionary Import
+# Format: word <tab> shortcut <tab> locale
+# Import: Gboard > Settings > Dictionary > Personal dictionary > English
+# Then add each entry manually, or use this as reference.
+#
+# USAGE: Type the shortcut, then tap the suggestion from the bar.
+# Example: Type \aa → tap ā from suggestions
+#
+ā	\aa	en
+Ā	\AA	en
+ī	\ii	en
+Ī	\II	en
+ū	\uu	en
+Ū	\UU	en
+ḥ	\hd	en
+Ḥ	\HD	en
+ṣ	\sd	en
+Ṣ	\SD	en
+ṭ	\td	en
+Ṭ	\TD	en
+ḍ	\dd	en
+Ḍ	\DD	en
+ẓ	\zd	en
+Ẓ	\ZD	en
+š	\sv	en
+Š	\SV	en
+ṯ	\th	en
+Ṯ	\TH	en
+ḫ	\kh	en
+Ḫ	\KH	en
+ġ	\gh	en
+Ġ	\GH	en
+ḏ	\dh	en
+Ḏ	\DH	en
+ʿ	\ayn	en
+ʾ	\ham	en
