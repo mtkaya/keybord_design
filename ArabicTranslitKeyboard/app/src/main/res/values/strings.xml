@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Arabic Transliteration</string>
+    <string name="ime_name">Arabic Transliteration Keyboard</string>
+    <string name="subtype_label">Transliteration (DIN 31635)</string>
+</resources>
