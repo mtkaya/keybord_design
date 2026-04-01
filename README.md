@@ -12,6 +12,9 @@ tags:
   - ergonomics
   - mechanical-keyboard
   - hardware
+  - arabic-transliteration
+  - android
+  - academic-writing
 ---
 
 # ⌨️ Keyboard Design: Ergonomiden Mekaniğe Kapsamlı Bir Rehber
@@ -313,6 +316,34 @@ AI, klavye tasarımında yeni olanaklar sunmaktadır:
 4. **Optik anahtarlar** — Işık tabanlı aktüasyon, ultra hızlı tepki
 5. **Sürdürülebilir malzemeler** — Geri dönüştürülmüş/biyobozunur malzemeler
 6. **AI destekli adaptif düzenler** — Gerçek zamanlı tuş haritası optimizasyonu
+
+---
+
+## 11. Akademik Arapça Transliterasyon: Android ve Fiziksel Klavye
+
+Fiziksel klavye ile Android tablette (Samsung Galaxy Tab S10 Ultra) akademik Arapça transliterasyon karakterleri yazmak icin kapsamli bir rehber hazirladik. Bu rehber; kataloglama, kritik edisyon ve akademik yazim icin uygundur.
+
+### Desteklenen Karakterler
+
+| Karakter | Aciklama | Tus Kombinasyonu |
+|----------|----------|-------------------|
+| ā ī ū | Uzun unluler (makronlu) | RAlt + a / i / u |
+| ḥ ṣ ṭ ḍ ẓ | Alt noktali unsuzler | RAlt + h / s / t / d / z |
+| š | Shin (s-karon) | RAlt + c |
+| ṯ ḏ | Alt cizgili harfler | RAlt + v / e |
+| ḫ | Kha (alt breveli h) | RAlt + x |
+| ġ | Ghayn (ust noktali g) | RAlt + g |
+| ʿ ʾ | Ayn ve Hamza | RAlt + [ / ] |
+
+### Cozumler
+
+1. **External Keyboard Helper Pro** — En iyi deneyim, dogrudan tus esleme
+2. **Multiling O Keyboard** — Ucretsiz, ozellestirilabilir fiziksel klavye duzeni
+3. **Gboard Metin Degistirme** — Ek uygulama gerektirmez, hizli kurulum
+4. **Samsung Keyboard Kisayollari** — Yerlesik pano ve metin kisayollari
+5. **Hacker's Keyboard Compose** — Linux tarzi compose dizileri
+
+Detayli rehber: [Arabic Transliteration on Android](arabic-transliteration-android.md)
 
 ---
 
