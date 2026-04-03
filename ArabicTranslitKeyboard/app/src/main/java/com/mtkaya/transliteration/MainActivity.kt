@@ -115,6 +115,15 @@ class MainActivity : AppCompatActivity() {
         root.addView(createRefRow("RAlt + [", "ʿ", "ʿAyn (ع)"))
         root.addView(createRefRow("RAlt + ]", "ʾ", "Hamza (ء)"))
 
+        root.addView(createSpacer(16))
+        root.addView(createText("Turkish (TR mode)", 15f, true, Color.parseColor("#53d8fb")))
+        root.addView(createRefRow("RAlt + o", "ö / Ö", ""))
+        root.addView(createRefRow("RAlt + u", "ü / Ü", ""))
+        root.addView(createRefRow("RAlt + s", "ş / Ş", ""))
+        root.addView(createRefRow("RAlt + g", "ğ / Ğ", ""))
+        root.addView(createRefRow("RAlt + i", "ı / İ", ""))
+        root.addView(createRefRow("RAlt + c", "ç / Ç", ""))
+
         root.addView(createSpacer(32))
 
         // Examples
@@ -125,9 +134,22 @@ class MainActivity : AppCompatActivity() {
 
         root.addView(createSpacer(32))
 
+        root.addView(createText("Usage", 18f, true, Color.parseColor("#e94560")))
+        root.addView(createSpacer(8))
         root.addView(createText(
-            "Tip: This keyboard works alongside your normal keyboard. " +
-            "Regular keys work normally — only RAlt combos produce transliteration characters.",
+            "▲ Tap to expand/collapse the character grid\n" +
+            "Translit / TR / All — switch between modes\n" +
+            "Toolbar shows quick-access characters\n" +
+            "RAlt + key works with physical keyboard in all modes",
+            13f, false, Color.parseColor("#b0b0b0")
+        ))
+
+        root.addView(createSpacer(16))
+
+        root.addView(createText(
+            "Tip: The keyboard shows a compact toolbar by default. " +
+            "Tap ▲ to expand the full character grid when needed. " +
+            "RAlt combos work regardless of the grid state.",
             13f, false, Color.parseColor("#808080")
         ))
 

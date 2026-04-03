@@ -10,45 +10,68 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.Gravity
 
 /**
- * Arabic Transliteration Input Method Service.
+ * Arabic Transliteration + Turkish Input Method Service.
  *
- * Physical keyboard: RAlt + key → transliteration character
- * Soft keyboard: Grid of transliteration character buttons
+ * Physical keyboard: RAlt/AltGr + key → special character
+ * Soft keyboard: Compact toolbar (expandable on tap), 3 modes: Translit / TR / All
  */
 class TranslitInputMethodService : InputMethodService() {
 
     private var isShiftOn = false
     private var isRaltDown = false
+    // Also track Left Ctrl for AltGr emulation (some keyboards send Ctrl+Alt for AltGr)
+    private var isLctrlDown = false
+    private var isLaltDown = false
+
+    // Current mode: 0=Translit, 1=Turkish, 2=All
+    private var currentMode = 0
+    private val modeNames = arrayOf("Translit", "TR", "All")
+
+    // Soft keyboard expanded state
+    private var isExpanded = false
+    private var softShift = false
+
+    private var rootLayout: LinearLayout? = null
+    private var gridContainer: LinearLayout? = null
+    private var toggleBtn: Button? = null
+    private var modeBtn: Button? = null
+    private var shiftBtn: Button? = null
 
     // ========== PHYSICAL KEYBOARD HANDLING ==========
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (event == null) return super.onKeyDown(keyCode, event)
 
-        // Track Right Alt state
-        if (keyCode == KeyEvent.KEYCODE_ALT_RIGHT) {
-            isRaltDown = true
-            return true
+        // Track modifier states
+        when (keyCode) {
+            KeyEvent.KEYCODE_ALT_RIGHT -> { isRaltDown = true; return true }
+            KeyEvent.KEYCODE_ALT_LEFT -> { isLaltDown = true }
+            KeyEvent.KEYCODE_CTRL_LEFT -> { isLctrlDown = true }
+            KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_SHIFT_RIGHT -> { isShiftOn = true }
         }
 
-        // Track Shift state
-        if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT) {
-            isShiftOn = true
-        }
-
-        // Check for RAlt + key combo OR Meta state has ALT_RIGHT
-        val hasRalt = isRaltDown ||
-            (event.metaState and KeyEvent.META_ALT_RIGHT_ON) != 0
+        // Detect RAlt: direct key, meta state, or Ctrl+Alt combo (AltGr emulation)
+        val metaState = event.metaState
+        val hasRalt = isRaltDown
+            || (metaState and KeyEvent.META_ALT_RIGHT_ON) != 0
+            || (isLctrlDown && isLaltDown)
+            || (metaState and (KeyEvent.META_CTRL_ON or KeyEvent.META_ALT_ON)) ==
+                (KeyEvent.META_CTRL_ON or KeyEvent.META_ALT_ON)
 
         if (hasRalt) {
-            val mapping = TranslitMap.mappings[keyCode]
+            // Pick mapping based on current mode
+            val mapping = when (currentMode) {
+                1 -> TranslitMap.turkishMappings[keyCode]
+                else -> TranslitMap.translitMappings[keyCode]
+                    ?: TranslitMap.turkishMappings[keyCode]
+            }
             if (mapping != null) {
-                val hasShift = isShiftOn ||
-                    (event.metaState and KeyEvent.META_SHIFT_ON) != 0
+                val hasShift = isShiftOn || (metaState and KeyEvent.META_SHIFT_ON) != 0
                 val text = if (hasShift) mapping.upper else mapping.lower
                 currentInputConnection?.commitText(text, 1)
                 return true
@@ -59,17 +82,16 @@ class TranslitInputMethodService : InputMethodService() {
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_ALT_RIGHT) {
-            isRaltDown = false
-            return true
-        }
-        if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT) {
-            isShiftOn = false
+        when (keyCode) {
+            KeyEvent.KEYCODE_ALT_RIGHT -> { isRaltDown = false; return true }
+            KeyEvent.KEYCODE_ALT_LEFT -> { isLaltDown = false }
+            KeyEvent.KEYCODE_CTRL_LEFT -> { isLctrlDown = false }
+            KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_SHIFT_RIGHT -> { isShiftOn = false }
         }
         return super.onKeyUp(keyCode, event)
     }
 
-    // ========== SOFT KEYBOARD (ON-SCREEN) ==========
+    // ========== SOFT KEYBOARD ==========
 
     override fun onCreateInputView(): View {
         return createSoftKeyboard()
@@ -80,118 +102,127 @@ class TranslitInputMethodService : InputMethodService() {
     }
 
     private fun createSoftKeyboard(): View {
-        val rootLayout = LinearLayout(this).apply {
+        val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(Color.parseColor("#1a1a2e"))
-            setPadding(8, 8, 8, 8)
+            setBackgroundColor(COLOR_BG)
         }
+        rootLayout = root
 
-        // Header bar
-        val headerBar = LinearLayout(this).apply {
+        // === Toolbar (always visible, compact) ===
+        val toolbar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(16, 8, 16, 8)
+            setPadding(8, 6, 8, 6)
+            setBackgroundColor(COLOR_TOOLBAR)
         }
 
-        val titleText = TextView(this).apply {
-            text = "Arabic Transliteration"
-            setTextColor(Color.parseColor("#e0e0e0"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            typeface = Typeface.DEFAULT_BOLD
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        // Toggle expand/collapse button
+        toggleBtn = makeToolbarBtn(if (isExpanded) "▼" else "▲") {
+            isExpanded = !isExpanded
+            toggleBtn?.text = if (isExpanded) "▼" else "▲"
+            gridContainer?.visibility = if (isExpanded) View.VISIBLE else View.GONE
         }
-        headerBar.addView(titleText)
+        toolbar.addView(toggleBtn)
 
-        // Shift toggle button
-        val shiftBtn = Button(this).apply {
-            text = "⇧"
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-            setBackgroundColor(Color.parseColor("#16213e"))
-            setTextColor(Color.WHITE)
-            setPadding(24, 8, 24, 8)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
+        // Mode switch button
+        modeBtn = makeToolbarBtn(modeNames[currentMode]) {
+            currentMode = (currentMode + 1) % modeNames.size
+            modeBtn?.text = modeNames[currentMode]
+            refreshGrid()
         }
-        var softShift = false
-        shiftBtn.setOnClickListener {
+        toolbar.addView(modeBtn)
+
+        // Shift button
+        shiftBtn = makeToolbarBtn("⇧") {
             softShift = !softShift
-            shiftBtn.setBackgroundColor(
-                if (softShift) Color.parseColor("#e94560") else Color.parseColor("#16213e")
-            )
-            updateGrid(rootLayout, softShift)
+            shiftBtn?.setTextColor(if (softShift) COLOR_ACCENT else Color.WHITE)
+            refreshGrid()
         }
-        headerBar.addView(shiftBtn)
+        toolbar.addView(shiftBtn)
 
-        rootLayout.addView(headerBar)
+        // Quick-access: most used characters in toolbar
+        val quickChars = listOf("ā", "ḥ", "ṣ", "ṭ", "ʿ", "ş")
+        for (ch in quickChars) {
+            val btn = makeToolbarBtn(ch) {
+                currentInputConnection?.commitText(ch, 1)
+            }
+            btn.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                setMargins(2, 2, 2, 2)
+            }
+            toolbar.addView(btn)
+        }
+
+        root.addView(toolbar)
+
+        // === Expandable grid container (hidden by default) ===
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+            setPadding(4, 4, 4, 4)
+        }
+        gridContainer = container
 
         // Character grid
-        val grid = createCharGrid(false)
-        grid.tag = "charGrid"
-        rootLayout.addView(grid)
+        container.addView(createCharGrid())
 
-        // Bottom utility row
+        // Utility row
         val utilRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            setPadding(4, 4, 4, 4)
+            setPadding(4, 2, 4, 2)
         }
-
-        // Space button
-        val spaceBtn = createUtilButton("Space", 2f) {
+        utilRow.addView(makeUtilBtn("Space", 2.5f) {
             currentInputConnection?.commitText(" ", 1)
-        }
-        utilRow.addView(spaceBtn)
-
-        // Backspace button
-        val bkspBtn = createUtilButton("⌫", 1f) {
+        })
+        utilRow.addView(makeUtilBtn("⌫", 1f) {
             currentInputConnection?.deleteSurroundingText(1, 0)
-        }
-        utilRow.addView(bkspBtn)
-
-        // Enter button
-        val enterBtn = createUtilButton("↵", 1f) {
+        })
+        utilRow.addView(makeUtilBtn("↵", 1f) {
             currentInputConnection?.commitText("\n", 1)
-        }
-        utilRow.addView(enterBtn)
+        })
+        container.addView(utilRow)
 
-        rootLayout.addView(utilRow)
+        root.addView(container)
 
-        return rootLayout
+        return root
     }
 
-    private fun createCharGrid(shift: Boolean): GridLayout {
+    private fun createCharGrid(): GridLayout {
+        val chars = when (currentMode) {
+            0 -> TranslitMap.translitChars
+            1 -> TranslitMap.turkishChars
+            else -> TranslitMap.allChars
+        }
+
+        val cols = if (chars.size <= 6) 3 else 5
+
         val grid = GridLayout(this).apply {
-            columnCount = 5
-            setPadding(4, 4, 4, 4)
+            columnCount = cols
+            tag = "charGrid"
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
         }
 
-        TranslitMap.allChars.forEachIndexed { index, (lower, upper) ->
-            val displayChar = if (shift) upper else lower
+        chars.forEachIndexed { index, (lower, upper) ->
+            val displayChar = if (softShift) upper else lower
             val btn = Button(this).apply {
                 text = displayChar
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
                 setTextColor(Color.WHITE)
-                setBackgroundColor(Color.parseColor("#16213e"))
-                minWidth = 0
-                minHeight = 0
-                minimumWidth = 0
-                minimumHeight = 0
-                setPadding(8, 16, 8, 16)
+                setBackgroundColor(COLOR_KEY)
+                minWidth = 0; minHeight = 0
+                minimumWidth = 0; minimumHeight = 0
+                setPadding(8, 12, 8, 12)
 
-                val params = GridLayout.LayoutParams().apply {
+                layoutParams = GridLayout.LayoutParams().apply {
                     width = 0
                     height = GridLayout.LayoutParams.WRAP_CONTENT
-                    columnSpec = GridLayout.spec(index % 5, 1, 1f)
-                    rowSpec = GridLayout.spec(index / 5)
-                    setMargins(4, 4, 4, 4)
+                    columnSpec = GridLayout.spec(index % cols, 1, 1f)
+                    rowSpec = GridLayout.spec(index / cols)
+                    setMargins(3, 3, 3, 3)
                 }
-                layoutParams = params
 
                 setOnClickListener {
                     currentInputConnection?.commitText(displayChar, 1)
@@ -203,31 +234,56 @@ class TranslitInputMethodService : InputMethodService() {
         return grid
     }
 
-    private fun updateGrid(rootLayout: LinearLayout, shift: Boolean) {
-        // Find and replace the grid
-        for (i in 0 until rootLayout.childCount) {
-            val child = rootLayout.getChildAt(i)
-            if (child is GridLayout && child.tag == "charGrid") {
-                rootLayout.removeViewAt(i)
-                val newGrid = createCharGrid(shift)
-                newGrid.tag = "charGrid"
-                rootLayout.addView(newGrid, i)
-                break
+    private fun refreshGrid() {
+        val container = gridContainer ?: return
+        // Remove old grid
+        for (i in 0 until container.childCount) {
+            if (container.getChildAt(i) is GridLayout) {
+                container.removeViewAt(i)
+                container.addView(createCharGrid(), i)
+                return
             }
         }
     }
 
-    private fun createUtilButton(label: String, weight: Float, onClick: () -> Unit): Button {
+    // ========== UI HELPERS ==========
+
+    private fun makeToolbarBtn(label: String, onClick: () -> Unit): Button {
         return Button(this).apply {
             text = label
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setTextColor(Color.WHITE)
-            setBackgroundColor(Color.parseColor("#0f3460"))
-            setPadding(16, 12, 16, 12)
+            setBackgroundColor(COLOR_KEY)
+            minWidth = 0; minHeight = 0
+            minimumWidth = 0; minimumHeight = 0
+            setPadding(12, 6, 12, 6)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(3, 2, 3, 2) }
+            setOnClickListener { onClick() }
+        }
+    }
+
+    private fun makeUtilBtn(label: String, weight: Float, onClick: () -> Unit): Button {
+        return Button(this).apply {
+            text = label
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setTextColor(Color.WHITE)
+            setBackgroundColor(COLOR_UTIL)
+            setPadding(12, 8, 12, 8)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, weight).apply {
-                setMargins(4, 4, 4, 4)
+                setMargins(3, 3, 3, 3)
             }
             setOnClickListener { onClick() }
         }
+    }
+
+    companion object {
+        private const val COLOR_BG = 0xFF1a1a2e.toInt()
+        private const val COLOR_TOOLBAR = 0xFF16213e.toInt()
+        private const val COLOR_KEY = 0xFF0f3460.toInt()
+        private const val COLOR_UTIL = 0xFF16213e.toInt()
+        private const val COLOR_ACCENT = 0xFFe94560.toInt()
     }
 }
